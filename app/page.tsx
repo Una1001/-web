@@ -20,6 +20,9 @@ export default function Home() {
       <CardHeader title="陳欣妤" />
       <CardContent>
         <Typography variant="body1">{count}</Typography>
+        <Typography variant="body2" color="text.secondary">
+    資管系三乙 412402062 喜歡吃甜食
+  </Typography>
       </CardContent>
       <CardActions>
         <Button variant="contained" onClick={handleClick}>Click Me</Button>
@@ -38,6 +41,9 @@ export default function Home() {
       <CardHeader title="劉懿萱" />
       <CardContent>
         <Typography variant="body1">{count}</Typography>
+        <Typography variant="body2" color="text.secondary">
+    資管系三乙 412402529 喜歡睡覺
+  </Typography>
       </CardContent>
       <CardActions>
         <Button variant="contained" onClick={handleClick}>Click Me</Button>
@@ -47,6 +53,9 @@ export default function Home() {
       <CardHeader title="黃盈甄" />
       <CardContent>
         <Typography variant="body1">{count}</Typography>
+        <Typography variant="body2" color="text.secondary">
+    資管系三乙 412402255 喜歡旅行
+  </Typography>
       </CardContent>
       <CardActions>
         <Button variant="contained" onClick={handleClick}>Click Me</Button>
@@ -55,6 +64,9 @@ export default function Home() {
       <CardHeader title="高子晴" />
       <CardContent>
         <Typography variant="body1">{count}</Typography>
+        <Typography variant="body2" color="text.secondary">
+    資管系三乙 412402206 喜歡約會
+  </Typography>
       </CardContent>
       <CardActions>
         <Button variant="contained" onClick={handleClick}>Click Me</Button>
