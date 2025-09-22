@@ -28,7 +28,14 @@ export default function Home() {
     <Card sx={{ flex: 1 }}>
       <CardHeader title="劉姝辰" />
       <CardContent>
-        <Typography variant="body1">{count}</Typography>
+          <Typography variant="body1">{count}</Typography>
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            系級：資管三乙<br/>
+            學號：412402361<br/>
+            姓名：劉姝辰<br/>
+            興趣：喝酒、打傳說<br/>
+            專長：前端開發
+          </Typography>
       </CardContent>
       <CardActions>
         <Button variant="contained" onClick={handleClick}>Click Me</Button>
