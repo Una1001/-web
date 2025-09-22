@@ -17,7 +17,7 @@ export default function Home() {
     display: 'flex',
     gap: 2,}}>
     <Card sx={{ flex: 1 }}>
-      <CardHeader title="A Counter" />
+      <CardHeader title="陳欣妤" />
       <CardContent>
         <Typography variant="body1">{count}</Typography>
       </CardContent>
@@ -26,7 +26,33 @@ export default function Home() {
       </CardActions>
     </Card>
     <Card sx={{ flex: 1 }}>
-      <CardHeader title="A Counter" />
+      <CardHeader title="劉姝辰" />
+      <CardContent>
+        <Typography variant="body1">{count}</Typography>
+      </CardContent>
+      <CardActions>
+        <Button variant="contained" onClick={handleClick}>Click Me</Button>
+      </CardActions>
+    </Card>
+    <Card sx={{ flex: 1 }}>
+      <CardHeader title="劉懿萱" />
+      <CardContent>
+        <Typography variant="body1">{count}</Typography>
+      </CardContent>
+      <CardActions>
+        <Button variant="contained" onClick={handleClick}>Click Me</Button>
+      </CardActions>
+    </Card>
+    <Card sx={{ flex: 1 }}>
+      <CardHeader title="黃盈甄" />
+      <CardContent>
+        <Typography variant="body1">{count}</Typography>
+      </CardContent>
+      <CardActions>
+        <Button variant="contained" onClick={handleClick}>Click Me</Button>
+      </CardActions>
+    </Card><Card sx={{ flex: 1 }}>
+      <CardHeader title="高子晴" />
       <CardContent>
         <Typography variant="body1">{count}</Typography>
       </CardContent>
