@@ -44,7 +44,11 @@ export default function Home() {
         <CardContent>
           <CountCard />
           <Typography variant="body2" color="text.secondary">
-            資管系三乙 412402255 喜歡旅行
+            系級：資管三乙<br />
+            學號：412402555<br />
+            姓名：黃盈甄<br />
+            興趣：旅遊<br />
+            專長：前端
           </Typography>
         </CardContent>
       </Card>
