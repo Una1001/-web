@@ -1,9 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { Card, CardActions, CardContent, CardHeader } from '@mui/material';
 import Button from '@mui/material/Button';
-import { Card, CardActions, CardHeader, CardContent } from '@mui/material';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
+import { useState } from 'react';
 
 export default function Home() {
   return (
@@ -41,7 +41,11 @@ export default function Home() {
         <CardContent>
           <CountCard />
           <Typography variant="body2" color="text.secondary">
-            資管系三乙 412402529 喜歡睡覺
+            系級：資管三乙<br />
+            學號：412402529<br />
+            姓名：劉懿萱<br />
+            興趣：看電影<br />
+            專長：前端開發
           </Typography>
         </CardContent>
       </Card>
