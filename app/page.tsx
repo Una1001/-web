@@ -12,6 +12,13 @@ export default function Home() {
         <CardHeader title="陳欣妤" />
         <CardContent>
           <CountCard />
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            系級：資管三乙<br />
+            學號：412402062<br />
+            姓名：陳欣妤<br />
+            興趣：吃甜食、放空<br />
+            專長：休息+沒有專長
+          </Typography>
         </CardContent>
       </Card>
 
