@@ -4,11 +4,35 @@ import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import { useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
+  const router = useRouter();
   return (
-    <Container sx={{ width: '100%', display: 'flex', gap: 2 }}>
-      <Card sx={{ flex: 1 }}>
+    <Container sx={{ width: '100%', display: 'flex', gap: 2, flexDirection: 'column' }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <Link href="/products">
+          <Button variant="outlined">產品列表</Button>
+        </Link>
+
+        <Link href="/customers">
+          <Button variant="outlined">顧客列表</Button>
+        </Link>
+
+        <Link href="/vendors">
+          <Button variant="outlined">廠商列表</Button>
+        </Link>
+
+        <Link href="/orders">
+          <Button variant="outlined">訂單列表</Button>
+        </Link>
+
+        <Button variant="contained" onClick={() => router.push('/products')}>用 JS 前往產品</Button>
+      </div>
+
+      <div style={{ display: 'flex', gap: 2 }}>
+        <Card sx={{ flex: 1 }}>
         <CardHeader title="陳欣妤" />
         <CardContent>
           <CountCard />
@@ -77,6 +101,7 @@ export default function Home() {
           </Typography>
         </CardContent>
       </Card>
+      </div>
     </Container>
   );
 }
