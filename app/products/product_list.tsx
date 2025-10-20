@@ -36,7 +36,7 @@ export default function ProductList() {
 				<h1 style={{ margin: 0 }}>產品列表</h1>
 				<div style={{ display: "flex", gap: 12 }}>
 					<Link href="/" style={{ textDecoration: "none", color: "#3b82f6" }}>回到首頁</Link>
-					<button onClick={() => setShowForm(true)} style={{ background: "#10b981", color: "white", border: "none", padding: "8px 12px", borderRadius: 6, cursor: "pointer" }}>
+					<button onClick={() => setShowForm(true)} style={{ background: "#2563eb", color: "white", border: "none", padding: "8px 12px", borderRadius: 6, cursor: "pointer" }}>
 						新增產品
 					</button>
 				</div>
