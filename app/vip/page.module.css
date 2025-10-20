@@ -62,3 +62,26 @@
     gap: 6px;
   }
 }
+:root {}
+
+.form {
+  margin-top: 10px;
+}
+
+.fieldRow {
+  margin-top: 6px;
+}
+
+.addButton {
+  background-color: #2f6fdb; /* 與 .primaryButton 同色系 */
+}
+
+/* 維持你原本的 RWD 節奏 */
+@media (max-width: 640px) {
+  .form {
+    margin-top: 8px;
+  }
+  .addButton {
+    width: 100%;
+  }
+}
