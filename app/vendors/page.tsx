@@ -1,4 +1,6 @@
 "use client";
+
+import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Container from "@mui/material/Container";
@@ -7,13 +9,42 @@ import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import Button from "@mui/material/Button";
 
+type Vendor = { id: number; name: string; contact: string };
+
 export default function VendorsPage() {
   const router = useRouter();
 
-  const vendors = [
+  const [vendors, setVendors] = useState<Vendor[]>([
     { id: 1, name: "AAA 電子", contact: "aaa@example.com" },
     { id: 2, name: "BBB 材料行", contact: "bbb@example.com" },
-  ];
+  ]);
+
+  const [isOpen, setIsOpen] = useState(false);
+  const [formName, setFormName] = useState("");
+  const [formContact, setFormContact] = useState("");
+
+  const openModal = () => setIsOpen(true);
+  const closeModal = () => {
+    setIsOpen(false);
+    setFormName("");
+    setFormContact("");
+  };
+
+  const addVendor = () => {
+    const name = formName.trim();
+    const contact = formContact.trim();
+    if (!name) {
+      alert("請輸入廠商名稱");
+      return;
+    }
+    if (!contact) {
+      alert("請輸入聯絡資訊");
+      return;
+    }
+
+    setVendors((prev) => [...prev, { id: Date.now(), name, contact }]);
+    closeModal();
+  };
 
   return (
     <Container sx={{ padding: 3 }}>
@@ -24,7 +55,10 @@ export default function VendorsPage() {
       <List sx={{ bgcolor: "background.paper" }}>
         {vendors.map((v) => (
           <ListItem key={v.id} divider>
-            {v.name} - {v.contact}
+            <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+              <div>{v.name}</div>
+              <div style={{ color: "#555" }}>{v.contact}</div>
+            </div>
           </ListItem>
         ))}
       </List>
@@ -35,7 +69,34 @@ export default function VendorsPage() {
         </Link>
 
         <Button variant="contained" onClick={() => router.push('/')}>使用 JS 跳轉回首頁</Button>
+
+        <div style={{ marginLeft: "auto" }}>
+          <Button variant="contained" color="success" onClick={openModal}>
+            新增廠商
+          </Button>
+        </div>
       </div>
+
+      {/* Modal */}
+      {isOpen && (
+        <div role="dialog" aria-modal="true" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ width: 420, background: "#fff", borderRadius: 10, padding: 20, boxShadow: "0 10px 30px rgba(2,6,23,0.2)" }}>
+            <h2 style={{ marginTop: 0 }}>新增廠商</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <label style={{ fontSize: 13, color: "#374151" }}>廠商名稱</label>
+              <input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="例如：CCC 貿易" style={{ padding: 10, borderRadius: 6, border: "1px solid #e5e7eb" }} />
+
+              <label style={{ fontSize: 13, color: "#374151" }}>聯絡資訊</label>
+              <input value={formContact} onChange={(e) => setFormContact(e.target.value)} placeholder="例如：admin@example.com 或 0912-345678" style={{ padding: 10, borderRadius: 6, border: "1px solid #e5e7eb" }} />
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 6 }}>
+                <Button variant="outlined" onClick={closeModal}>取消</Button>
+                <Button variant="contained" onClick={addVendor}>新增</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </Container>
   );
 }
