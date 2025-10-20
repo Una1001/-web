@@ -1,0 +1,87 @@
+.wrapper {
+  background-color: #f5f6f7; /* page 背景灰 */
+  padding: 28px;
+  border-radius: 10px;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(20, 20, 20, 0.06);
+  padding: 22px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.title {
+  color: #2b2b2b;
+  font-weight: 600;
+}
+
+.list {
+  margin-top: 12px;
+}
+
+.listItem {
+  padding: 14px 16px;
+  border-bottom: 1px solid #ececec;
+  color: #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.email {
+  color: #6b6b6b;
+  font-size: 0.95rem;
+}
+
+.actions {
+  margin-top: 22px;
+  display: flex;
+  gap: 12px;
+}
+
+.linkButton {
+  border-color: #cfcfcf;
+  color: #444;
+}
+
+.primaryButton {
+  background-color: #2f6fdb; /* 主色，可改 */
+}
+
+@media (max-width: 640px) {
+  .card {
+    padding: 16px;
+  }
+  .listItem {
+    padding: 10px 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
+:root {}
+
+.form {
+  margin-top: 10px;
+}
+
+.fieldRow {
+  margin-top: 6px;
+}
+
+.addButton {
+  background-color: #2f6fdb; /* 與 .primaryButton 同色系 */
+}
+
+/* 維持你原本的 RWD 節奏 */
+@media (max-width: 640px) {
+  .form {
+    margin-top: 8px;
+  }
+  .addButton {
+    width: 100%;
+  }
+}

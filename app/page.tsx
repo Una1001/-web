@@ -20,6 +20,10 @@ export default function Home() {
           <Button variant="outlined">顧客列表</Button>
         </Link>
 
+        <Link href="/vip">
+          <Button variant="outlined">VIP顧客列表</Button>
+        </Link>
+
         <Link href="/vendors">
           <Button variant="outlined">廠商列表</Button>
         </Link>
