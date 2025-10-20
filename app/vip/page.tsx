@@ -9,6 +9,10 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
@@ -32,6 +36,9 @@ export default function CustomersPage() {
   const [toast, setToast] = useState<{ open: boolean; msg: string; severity: "success" | "error" }>(
     { open: false, msg: "", severity: "success" }
   );
+
+  // 控制「新增顧客」Dialog
+  const [openAdd, setOpenAdd] = useState(false);
   const nameRef = useRef<HTMLInputElement | null>(null);
 
   // 可選：將資料暫存在 localStorage（重新整理不會不見）
@@ -77,8 +84,9 @@ export default function CustomersPage() {
     setCustomers((prev) => [...prev, next]);
     setName("");
     setEmail("");
+    setErrors({});
+    setOpenAdd(false);
     setToast({ open: true, msg: "已新增顧客", severity: "success" });
-    nameRef.current?.focus();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -88,6 +96,15 @@ export default function CustomersPage() {
     }
   };
 
+  const openAddDialog = () => {
+    setName("");
+    setEmail("");
+    setErrors({});
+    setOpenAdd(true);
+    // 小延遲確保 Dialog 掛載完成後再聚焦
+    setTimeout(() => nameRef.current?.focus(), 50);
+  };
+
   return (
     <div className={styles.wrapper}>
       <Container className={styles.card}>
@@ -95,44 +112,11 @@ export default function CustomersPage() {
           vip顧客列表
         </Typography>
 
-        {/* 新增區塊 */}
-        <div className={styles.form}>
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} className={styles.fieldRow}>
-            <TextField
-              inputRef={nameRef}
-              label="姓名"
-              placeholder="請輸入姓名"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={handleKeyDown}
-              error={Boolean(errors.name)}
-              helperText={errors.name}
-              size="small"
-              fullWidth
-            />
-            <TextField
-              label="Email"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={handleKeyDown}
-              error={Boolean(errors.email)}
-              helperText={errors.email}
-              size="small"
-              fullWidth
-              type="email"
-              inputMode="email"
-              autoComplete="email"
-            />
-            <Button
-              variant="contained"
-              className={styles.addButton}
-              onClick={handleAdd}
-              sx={{ whiteSpace: "nowrap" }}
-            >
-              新增顧客
-            </Button>
-          </Stack>
+        {/* 只顯示按鈕；點擊後彈出新增對話框 */}
+        <div className={styles.actionsTop}>
+          <Button variant="contained" className={styles.addButton} onClick={openAddDialog}>
+            新增顧客
+          </Button>
         </div>
 
         {/* 清單 */}
@@ -164,6 +148,47 @@ export default function CustomersPage() {
           </Button>
         </div>
 
+        {/* 新增顧客 Dialog */}
+        <Dialog open={openAdd} onClose={() => setOpenAdd(false)} fullWidth maxWidth="sm">
+          <DialogTitle>新增顧客</DialogTitle>
+          <DialogContent>
+            <Stack spacing={1.5} className={styles.fieldRow} sx={{ mt: 0.5 }}>
+              <TextField
+                inputRef={nameRef}
+                label="姓名"
+                placeholder="請輸入姓名"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={handleKeyDown}
+                error={Boolean(errors.name)}
+                helperText={errors.name}
+                size="small"
+                fullWidth
+              />
+              <TextField
+                label="Email"
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={handleKeyDown}
+                error={Boolean(errors.email)}
+                helperText={errors.email}
+                size="small"
+                fullWidth
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenAdd(false)}>取消</Button>
+            <Button variant="contained" onClick={handleAdd} className={styles.addButton}>
+              確認新增
+            </Button>
+          </DialogActions>
+        </Dialog>
+
         <Snackbar
           open={toast.open}
           autoHideDuration={2200}
@@ -178,5 +203,3 @@ export default function CustomersPage() {
     </div>
   );
 }
-
-

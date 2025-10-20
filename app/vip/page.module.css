@@ -85,3 +85,26 @@
     width: 100%;
   }
 }
+.actionsTop {
+  margin-top: 8px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.fieldRow {
+  margin-top: 6px;
+}
+
+.addButton {
+  background-color: #2f6fdb; /* 與 .primaryButton 同色系 */
+}
+
+@media (max-width: 640px) {
+  .actionsTop {
+    justify-content: stretch;
+  }
+  .addButton {
+    width: 100%;
+  }
+}
