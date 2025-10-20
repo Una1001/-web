@@ -52,20 +52,42 @@ export default function ProductList() {
 			</div>
 
 			{showForm && (
-				<div style={{ border: "1px solid #ccc", padding: 16, borderRadius: 8, background: "#fff", marginTop: 16 }}>
-					<div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-						<label style={{ fontSize: 13, color: "#374151" }}>產品名稱</label>
-						<input type="text" name="desc" value={newProduct.desc} onChange={handleClick} placeholder="例如：幫忙吃飯服務" style={{ padding: 10, borderRadius: 6, border: "1px solid #e5e7eb" }} />
+				<>
+					<div style={{
+						position: "fixed",
+						top: 0,
+						left: 0,
+						width: "100vw",
+						height: "100vh",
+						background: "rgba(0,0,0,0.25)",
+						zIndex: 1000
+					}} onClick={() => setShowForm(false)} />
+					<div style={{
+						position: "fixed",
+						top: "50%",
+						left: "50%",
+						transform: "translate(-50%, -50%)",
+						background: "#fff",
+						borderRadius: 10,
+						boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+						padding: 28,
+						minWidth: 320,
+						zIndex: 1001
+					}}>
+						<div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+							<label style={{ fontSize: 13, color: "#374151" }}>產品名稱</label>
+							<input type="text" name="desc" value={newProduct.desc} onChange={handleClick} placeholder="例如：幫忙吃飯服務" style={{ padding: 10, borderRadius: 6, border: "1px solid #e5e7eb" }} />
 
-						<label style={{ fontSize: 13, color: "#374151" }}>價格 (NT$)</label>
-						<input type="number" name="price" value={newProduct.price} onChange={handleClick} placeholder="例如：19900" style={{ padding: 10, borderRadius: 6, border: "1px solid #e5e7eb" }} />
+							<label style={{ fontSize: 13, color: "#374151" }}>價格 (NT$)</label>
+							<input type="number" name="price" value={newProduct.price} onChange={handleClick} placeholder="例如：19900" style={{ padding: 10, borderRadius: 6, border: "1px solid #e5e7eb" }} />
 
-						<div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 6 }}>
-							<button onClick={() => setShowForm(false)} style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid #e5e7eb", background: "white", cursor: "pointer" }}>取消</button>
-							<button onClick={update} style={{ padding: "8px 12px", borderRadius: 6, border: "none", background: "#2563eb", color: "white", cursor: "pointer" }}>新增</button>
+							<div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 6 }}>
+								<button onClick={() => setShowForm(false)} style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid #e5e7eb", background: "white", cursor: "pointer" }}>取消</button>
+								<button onClick={update} style={{ padding: "8px 12px", borderRadius: 6, border: "none", background: "#2563eb", color: "white", cursor: "pointer" }}>新增</button>
+							</div>
 						</div>
 					</div>
-				</div>
+				</>
 			)}
 		</main>
 	);
