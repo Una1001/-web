@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { supabase, hasSupabase } from "../../lib/supabaseClient";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import List from "@mui/material/List";
@@ -43,13 +44,32 @@ export default function CustomersPage() {
 
   // 可選：將資料暫存在 localStorage（重新整理不會不見）
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("vip_customers");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) setCustomers(parsed);
+    // If Supabase is configured, prefer loading from the remote table.
+    const load = async () => {
+      if (hasSupabase) {
+        try {
+          const { data, error } = await supabase.from("vip_customers").select("*").order("id", { ascending: true });
+          if (error) throw error;
+          if (Array.isArray(data)) {
+            setCustomers(data as any[]);
+            return;
+          }
+        } catch (e) {
+          // fall back to localStorage on error
+          // console.warn("Supabase load failed, falling back to localStorage", e);
+        }
       }
-    } catch {}
+
+      try {
+        const raw = localStorage.getItem("vip_customers");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) setCustomers(parsed);
+        }
+      } catch {}
+    };
+
+    load();
   }, []);
 
   useEffect(() => {
@@ -81,12 +101,34 @@ export default function CustomersPage() {
       name: name.trim(),
       email: email.trim(),
     };
-    setCustomers((prev) => [...prev, next]);
-    setName("");
-    setEmail("");
-    setErrors({});
-    setOpenAdd(false);
-    setToast({ open: true, msg: "已新增顧客", severity: "success" });
+    const doAdd = async () => {
+      if (hasSupabase) {
+        try {
+          const { data, error } = await supabase.from("vip_customers").insert({ name: next.name, email: next.email }).select();
+          if (error) throw error;
+          if (Array.isArray(data)) {
+            setCustomers((prev) => [...prev, data[0] as any]);
+          } else {
+            setCustomers((prev) => [...prev, next]);
+          }
+        } catch (e) {
+          // If insert failed, still update locally and show error toast
+          setCustomers((prev) => [...prev, next]);
+          setToast({ open: true, msg: "新增到 Supabase 失敗，已保留於本地", severity: "error" });
+        }
+      } else {
+        setCustomers((prev) => [...prev, next]);
+      }
+
+      setName("");
+      setEmail("");
+      setErrors({});
+      setOpenAdd(false);
+      // success toast only when not already an error toast
+      setToast((t) => (t.severity === "error" ? t : { open: true, msg: "已新增顧客", severity: "success" }));
+    };
+
+    void doAdd();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
