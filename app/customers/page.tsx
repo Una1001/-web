@@ -10,6 +10,9 @@ import TextField from "@mui/material/TextField";
 import Stack from "@mui/material/Stack";
 import { Box } from "@mui/material";
 import React from "react";
+import { supabase, hasSupabase } from "../../lib/supabaseClient";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
 import styles from "./page.module.css";
 
 export default function CustomersPage() {
@@ -26,6 +29,7 @@ export default function CustomersPage() {
   const [email, setEmail] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [showForm, setShowForm] = React.useState(false);
+  const [toast, setToast] = React.useState<{ open: boolean; msg: string; severity: "success" | "error" }>({ open: false, msg: "", severity: "success" });
 
   function handleAdd() {
     setError(null);
@@ -37,16 +41,71 @@ export default function CustomersPage() {
       setError("請輸入正確 Email");
       return;
     }
-    const newCustomer = {
-      id: Date.now(),
-      name: name.trim(),
-      email: email.trim(),
+
+    const doAdd = async () => {
+      const newCustomerLocal = {
+        id: Date.now(),
+        name: name.trim(),
+        email: email.trim(),
+      };
+
+      if (hasSupabase) {
+        try {
+          const { data, error } = await supabase.from("customers").insert({ name: newCustomerLocal.name, email: newCustomerLocal.email }).select();
+          if (error) throw error;
+          if (Array.isArray(data) && data[0]) {
+            setCustomers((prev) => [data[0] as any, ...prev]);
+          } else {
+            setCustomers((prev) => [newCustomerLocal, ...prev]);
+          }
+          setToast({ open: true, msg: "已新增顧客 (已寫入 Supabase)", severity: "success" });
+        } catch (e) {
+          setCustomers((prev) => [newCustomerLocal, ...prev]);
+          setToast({ open: true, msg: "新增 Supabase 失敗，已保留於本地", severity: "error" });
+        }
+      } else {
+        setCustomers((prev) => [newCustomerLocal, ...prev]);
+        setToast({ open: true, msg: "已新增顧客 (本地)", severity: "success" });
+      }
+
+      setName("");
+      setEmail("");
+      setShowForm(false);
     };
-    setCustomers((prev) => [newCustomer, ...prev]);
-    setName("");
-    setEmail("");
-    setShowForm(false);
+
+    void doAdd();
   }
+
+  React.useEffect(() => {
+    const load = async () => {
+      if (hasSupabase) {
+        try {
+          const { data, error } = await supabase.from("customers").select("*").order("id", { ascending: false }).limit(100);
+          if (!error && Array.isArray(data)) {
+            setCustomers(data as any[]);
+            return;
+          }
+        } catch (e) {
+          // fallback to local
+        }
+      }
+      try {
+        const raw = localStorage.getItem("customers");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) setCustomers(parsed);
+        }
+      } catch {}
+    };
+
+    void load();
+  }, []);
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem("customers", JSON.stringify(customers));
+    } catch {}
+  }, [customers]);
 
   return (
     <div className={styles.wrapper}>

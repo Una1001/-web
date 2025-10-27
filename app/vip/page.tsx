@@ -21,6 +21,10 @@ import styles from "./page.module.css";
 export default function CustomersPage() {
   const router = useRouter();
 
+  // avoid hydration mismatch: only render after client mount
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   // 初始資料（若有 localStorage 儲存則以其為主）
   const initialSeed = useMemo(
     () => [
@@ -146,6 +150,8 @@ export default function CustomersPage() {
     // 小延遲確保 Dialog 掛載完成後再聚焦
     setTimeout(() => nameRef.current?.focus(), 50);
   };
+
+  if (!mounted) return null;
 
   return (
     <div className={styles.wrapper}>

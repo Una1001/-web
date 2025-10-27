@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Container from "@mui/material/Container";
@@ -8,6 +8,7 @@ import Typography from "@mui/material/Typography";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import Button from "@mui/material/Button";
+import { supabase, hasSupabase } from "../../lib/supabaseClient";
 
 type Vendor = { id: number; name: string; contact: string };
 
@@ -42,9 +43,63 @@ export default function VendorsPage() {
       return;
     }
 
-    setVendors((prev) => [...prev, { id: Date.now(), name, contact }]);
-    closeModal();
+    const doAdd = async () => {
+      const newVendorLocal = { id: Date.now(), name, contact };
+
+      if (hasSupabase) {
+        try {
+          const { data, error } = await supabase.from("vendors").insert({ name: newVendorLocal.name, contact: newVendorLocal.contact }).select();
+          if (error) throw error;
+          if (Array.isArray(data) && data[0]) {
+            setVendors((prev) => [data[0] as any, ...prev]);
+          } else {
+            setVendors((prev) => [newVendorLocal, ...prev]);
+          }
+        } catch (e) {
+          setVendors((prev) => [newVendorLocal, ...prev]);
+          alert("新增 Supabase 失敗，已保留於本地");
+        }
+      } else {
+        setVendors((prev) => [newVendorLocal, ...prev]);
+      }
+
+      closeModal();
+    };
+
+    void doAdd();
   };
+
+  useEffect(() => {
+    const load = async () => {
+      if (hasSupabase) {
+        try {
+          const { data, error } = await supabase.from("vendors").select("*").order("id", { ascending: false }).limit(100);
+          if (!error && Array.isArray(data)) {
+            setVendors(data as any[]);
+            return;
+          }
+        } catch (e) {
+          // fallback to local
+        }
+      }
+
+      try {
+        const raw = localStorage.getItem("vendors");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) setVendors(parsed);
+        }
+      } catch {}
+    };
+
+    void load();
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("vendors", JSON.stringify(vendors));
+    } catch {}
+  }, [vendors]);
 
   return (
     <Container sx={{ padding: 3 }}>

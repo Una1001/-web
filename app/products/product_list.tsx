@@ -1,34 +1,73 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
 
-type Product = { desc: string; price: number };
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import { supabase, hasSupabase } from "../../lib/supabaseClient";
+
+
+type Product = { id?: number; description: string; price: number };
 
 export default function ProductList() {
 	const [products, setProducts] = useState<Product[]>([
-		{ desc: "找小偷", price: 20000 },
-		{ desc: "惡搞朋友", price: 30000 },
-		{ desc: "假中獎影片", price: 42000 },
-		{ desc: "假髮幫貼服務", price: 7990 },
+		{ description: "找小偷", price: 20000 },
+		{ description: "惡搞朋友", price: 30000 },
+		{ description: "假中獎影片", price: 42000 },
+		{ description: "假髮幫貼服務", price: 7990 },
 	]);
 	const [showForm, setShowForm] = useState(false);
-	const [newProduct, setNewProduct] = useState({ desc: "", price: "" });
+	const [newProduct, setNewProduct] = useState({ description: "", price: "" });
 
 	const handleClick = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const { name, value } = e.target;
 		setNewProduct((prev) => ({ ...prev, [name]: value }));
 	};
 
-	const update = () => {
-		if (!newProduct.desc || !newProduct.price) {
+	const update = async () => {
+		if (!newProduct.description || !newProduct.price) {
 			alert("請填寫完整資訊");
 			return;
 		}
-		setProducts((prev) => [...prev, { desc: newProduct.desc, price: Number(newProduct.price) }]);
-		setNewProduct({ desc: "", price: "" });
-		setShowForm(false);
+			const item = { description: newProduct.description, price: Number(newProduct.price) };
+
+			if (hasSupabase) {
+				try {
+					const { data, error } = await supabase.from("products").insert(item).select();
+					if (error) throw error;
+					if (Array.isArray(data) && data[0]) setProducts((prev) => [...prev, data[0] as Product]);
+					else setProducts((prev) => [...prev, item]);
+				} catch (e) {
+					console.warn("Supabase insert failed, saving locally", e);
+					setProducts((prev) => [...prev, item]);
+				}
+			} else {
+				setProducts((prev) => [...prev, item]);
+			}
+
+			setNewProduct({ description: "", price: "" });
+			setShowForm(false);
 	};
+
+		useEffect(() => {
+			const load = async () => {
+				if (hasSupabase) {
+					try {
+						const { data, error } = await supabase.from("products").select("*").order("id", { ascending: true }).limit(500);
+						if (!error && Array.isArray(data)) {
+							setProducts(data as Product[]);
+							return;
+						}
+					} catch (e) {
+						// fallback to local
+					}
+				}
+				try { const raw = localStorage.getItem("products"); if (raw) { const parsed = JSON.parse(raw); if (Array.isArray(parsed)) setProducts(parsed); } } catch {}
+			};
+
+			void load();
+		}, []);
+
+		useEffect(() => { try { localStorage.setItem("products", JSON.stringify(products)); } catch {} }, [products]);
 
 	return (
 		<main style={{ padding: "2.25rem", fontFamily: "Inter, Arial, sans-serif", color: "#111" }}>
@@ -45,7 +84,7 @@ export default function ProductList() {
 			<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
 				{products.map((p, i) => (
 					<div key={i} style={{ background: "white", borderRadius: 8, padding: 12, boxShadow: "0 6px 18px rgba(15,23,42,0.06)", display: "flex", flexDirection: "column", gap: 8 }}>
-						<div style={{ fontSize: 16, fontWeight: 600 }}>{p.desc}</div>
+						<div style={{ fontSize: 16, fontWeight: 600 }}>{p.description}</div>
 						<div style={{ color: "#374151", fontWeight: 700 }}>NT$ {p.price.toLocaleString()}</div>
 					</div>
 				))}
@@ -76,7 +115,7 @@ export default function ProductList() {
 					}}>
 						<div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 							<label style={{ fontSize: 13, color: "#374151" }}>產品名稱</label>
-							<input type="text" name="desc" value={newProduct.desc} onChange={handleClick} placeholder="例如：幫忙吃飯服務" style={{ padding: 10, borderRadius: 6, border: "1px solid #e5e7eb" }} />
+							<input type="text" name="description" value={newProduct.description} onChange={handleClick} placeholder="例如：幫忙吃飯服務" style={{ padding: 10, borderRadius: 6, border: "1px solid #e5e7eb" }} />
 
 							<label style={{ fontSize: 13, color: "#374151" }}>價格 (NT$)</label>
 							<input type="number" name="price" value={newProduct.price} onChange={handleClick} placeholder="例如：19900" style={{ padding: 10, borderRadius: 6, border: "1px solid #e5e7eb" }} />
