@@ -16,8 +16,7 @@ export default function VendorsPage() {
   const router = useRouter();
 
   const [vendors, setVendors] = useState<Vendor[]>([
-    { id: 1, name: "AAA 電子", contact: "aaa@example.com" },
-    { id: 2, name: "BBB 材料行", contact: "bbb@example.com" },
+  
   ]);
 
   const [isOpen, setIsOpen] = useState(false);
