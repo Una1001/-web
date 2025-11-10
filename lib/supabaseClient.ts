@@ -4,6 +4,10 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+// 檢查是否有正確的 Supabase 設定
+export const hasSupabase = !!supabaseUrl && !!supabaseKey;
+
+
 // 命名匯出，允許其他模組條件性使用 Supabase
 export const hasSupabase = Boolean(supabaseUrl && supabaseKey);
 
