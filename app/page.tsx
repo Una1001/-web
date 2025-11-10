@@ -35,6 +35,16 @@ export default function Home() {
         <Button variant="contained" onClick={() => router.push('/products')}>用 JS 前往產品</Button>
       </div>
 
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <Link href="/register">
+          <Button variant="outlined">註冊</Button>
+        </Link>
+
+        <Link href="/login">
+          <Button variant="outlined">登入</Button>
+        </Link>
+      </div>
+
       <div style={{ display: 'flex', gap: 2 }}>
         <Card sx={{ flex: 1 }}>
         <CardHeader title="陳欣妤" />
