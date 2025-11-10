@@ -9,18 +9,45 @@ import Button from "@mui/material/Button";
 import Modal from "@mui/material/Modal";
 import Box from "@mui/material/Box";
 import TextField from "@mui/material/TextField";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabaseClient";
+
+interface Order {
+  id: number;
+  customer: string;
+  total: number;
+}
 
 export default function OrdersPage() {
   const router = useRouter();
 
-  const [orders, setOrders] = useState([
-    { id: 1001, customer: "張三", product: "產品A", total: 1200 },
-    { id: 1002, customer: "李四", product: "產品B", total: 450 },
-  ]);
-
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isModalOpen, setModalOpen] = useState(false);
-  const [newOrder, setNewOrder] = useState({ customer: "", product: "", total: "" });
+  const [newOrder, setNewOrder] = useState({ customer: "", total: "" });
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("orders")
+          .select("id, customer, total")
+          .order("id", { ascending: true });
+
+        if (error) {
+          console.error("Error fetching orders:", error);
+        } else {
+          setOrders(data as Order[]);
+        }
+      } catch (err) {
+        console.error("Unexpected error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, []);
 
   const handleOpenModal = () => setModalOpen(true);
   const handleCloseModal = () => setModalOpen(false);
@@ -30,12 +57,28 @@ export default function OrdersPage() {
     setNewOrder((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddOrder = () => {
-    const id = orders.length ? orders[orders.length - 1].id + 1 : 1001;
-    setOrders([...orders, { id, ...newOrder, total: parseFloat(newOrder.total) }]);
-    setNewOrder({ customer: "", product: "", total: "" });
-    handleCloseModal();
+  const handleAddOrder = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .insert([{ ...newOrder, total: parseFloat(newOrder.total) }])
+        .single();
+
+      if (error) {
+        console.error("Error adding order:", error);
+      } else {
+        setOrders((prev) => [...prev, data]);
+        setNewOrder({ customer: "", total: "" });
+        handleCloseModal();
+      }
+    } catch (err) {
+      console.error("Unexpected error:", err);
+    }
   };
+
+  if (loading) {
+    return <p>Loading orders...</p>;
+  }
 
   return (
     <Container sx={{ padding: 3 }}>
@@ -46,7 +89,7 @@ export default function OrdersPage() {
       <List sx={{ bgcolor: "background.paper" }}>
         {orders.map((o) => (
           <ListItem key={o.id} divider>
-            訂單 #{o.id} - {o.customer} - {o.product} - NT${o.total}
+            {o.customer} - NT${o.total}
           </ListItem>
         ))}
       </List>
@@ -85,14 +128,6 @@ export default function OrdersPage() {
             label="顧客"
             name="customer"
             value={newOrder.customer}
-            onChange={handleInputChange}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            label="產品"
-            name="product"
-            value={newOrder.product}
             onChange={handleInputChange}
             sx={{ mb: 2 }}
           />
