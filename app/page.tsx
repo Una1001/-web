@@ -3,10 +3,10 @@ import { Card, CardActions, CardContent, CardHeader } from '@mui/material';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
-import { useState, useEffect } from 'react';
+import { Session, User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { User, Session } from '@supabase/supabase-js';
+import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 export default function Home() {
@@ -37,7 +37,22 @@ export default function Home() {
         <Typography variant="h6">首頁</Typography>
         <div>
           {user ? (
-            <Typography variant="body1">歡迎，{user.email}</Typography>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <Typography variant="body1">歡迎，{user.email}</Typography>
+              <Button variant="outlined" size="small" onClick={async () => {
+                try {
+                  const { error } = await supabase.auth.signOut();
+                  if (error) throw error;
+                  setUser(null);
+                  router.push('/');
+                } catch (err) {
+                  console.error('Logout error', err);
+                  alert('登出失敗，請稍後再試');
+                }
+              }}>
+                登出
+              </Button>
+            </div>
           ) : (
             <Typography variant="body1">未登入</Typography>
           )}

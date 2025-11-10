@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
-import Typography from "@mui/material/Typography";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
-import Button from "@mui/material/Button";
-import { supabase, hasSupabase } from "../../lib/supabaseClient";
+import Typography from "@mui/material/Typography";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { hasSupabase, supabase } from "../../lib/supabaseClient";
 
 type Vendor = { id: number; name: string; contact: string };
 
@@ -25,12 +25,29 @@ export default function VendorsPage() {
   const [formContact, setFormContact] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
 
-  const openModal = () => setIsOpen(true);
   const closeModal = () => {
     setIsOpen(false);
     setFormName("");
     setFormContact("");
   };
+
+  // 確認使用者是否已登入，未登入會導到 /login
+  async function ensureAuth(): Promise<boolean> {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/login');
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Auth check failed', err);
+      router.push('/login');
+      return false;
+    }
+  }
 
   const addVendor = () => {
     const name = formName.trim();
@@ -70,12 +87,26 @@ export default function VendorsPage() {
     void doAdd();
   };
 
-  const startEdit = (v: Vendor) => {
+  const startEdit = async (v: Vendor) => {
+    const ok = await ensureAuth();
+    if (!ok) return;
     setEditingId(v.id);
     setFormName(v.name);
     setFormContact(v.contact);
     setIsOpen(true);
   };
+
+  // 處理新增按鈕點擊：先檢查是否已登入，未登入則導向 /login
+  async function handleAddClick() {
+    try {
+      const ok = await ensureAuth();
+      if (!ok) return;
+      setIsOpen(true);
+    } catch (err) {
+      console.error('Error checking auth before add:', err);
+      router.push('/login');
+    }
+  }
 
   const saveEdit = () => {
     const name = formName.trim();
@@ -107,7 +138,9 @@ export default function VendorsPage() {
     void doSave();
   };
 
-  const deleteVendor = (id: number) => {
+  const deleteVendor = async (id: number) => {
+    const ok = await ensureAuth();
+    if (!ok) return;
     if (!confirm('確定要刪除這個廠商嗎？')) return;
     const doDelete = async () => {
       if (hasSupabase) {
@@ -190,7 +223,7 @@ export default function VendorsPage() {
         <Button variant="contained" onClick={() => router.push('/')}>使用 JS 跳轉回首頁</Button>
 
         <div style={{ marginLeft: "auto" }}>
-          <Button variant="contained" color="success" onClick={openModal}>
+          <Button variant="contained" color="success" onClick={() => { void handleAddClick(); }}>
             新增廠商
           </Button>
         </div>
