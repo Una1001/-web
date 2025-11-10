@@ -3,14 +3,47 @@ import { Card, CardActions, CardContent, CardHeader } from '@mui/material';
 import Button from '@mui/material/Button';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabaseClient';
 
 export default function Home() {
   const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    // 檢查用戶登入狀態
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+    getUser();
+
+    // 監聽認證狀態變化
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event: string, session: Session | null) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   return (
     <Container sx={{ width: '100%', display: 'flex', gap: 2, flexDirection: 'column' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }}>
+        <Typography variant="h6">首頁</Typography>
+        <div>
+          {user ? (
+            <Typography variant="body1">歡迎，{user.email}</Typography>
+          ) : (
+            <Typography variant="body1">未登入</Typography>
+          )}
+        </div>
+      </header>
+
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         <Link href="/products">
           <Button variant="outlined">產品列表</Button>
