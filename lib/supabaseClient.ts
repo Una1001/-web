@@ -1,11 +1,11 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
 
-// 使用 NEXT_PUBLIC_ 前綴，使前端（client components）也能讀到
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
-export const hasSupabase = Boolean(url && anonKey)
+// const SUPABASE_URL = 'https://lyokorcfaaqobtvtimeu.supabase.co';
+// const SUPABASE_ANON_KEY = 'your-anon-key-here'; // Replace with your actual Supabase anon key
 
-export const supabase = createClient(url, anonKey)
-
-export default supabase
+// export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// export const hasSupabase = !!SUPABASE_ANON_KEY;
