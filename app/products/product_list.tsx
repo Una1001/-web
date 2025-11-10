@@ -1,14 +1,44 @@
 "use client";
 
 
-import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { supabase, hasSupabase } from "../../lib/supabaseClient";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
+import { hasSupabase, supabase } from "../../lib/supabaseClient";
 
 
 type Product = { id?: number; description: string; price: number };
 
 export default function ProductList() {
+	const router = useRouter();
+
+	// 確認使用者是否已登入，未登入會導到 /login
+	async function ensureAuth(): Promise<boolean> {
+		try {
+			const { data: { user } } = await supabase.auth.getUser();
+			if (!user) {
+				router.push('/login');
+				return false;
+			}
+			return true;
+		} catch (err) {
+			console.error('Auth check failed', err);
+			router.push('/login');
+			return false;
+		}
+	}
+
+	// 新增按鈕的 handler：先檢查登入，再開啟表單
+	async function handleAddClick() {
+		try {
+			const ok = await ensureAuth();
+			if (!ok) return;
+			setShowForm(true);
+		} catch (err) {
+			console.error('Error checking auth before add:', err);
+			router.push('/login');
+		}
+	}
 	const [products, setProducts] = useState<Product[]>([
 		{ description: "找小偷", price: 20000 },
 		{ description: "惡搞朋友", price: 30000 },
@@ -74,10 +104,10 @@ export default function ProductList() {
 			<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
 				<h1 style={{ margin: 0 }}>產品列表</h1>
 				<div style={{ display: "flex", gap: 12 }}>
-					<Link href="/" style={{ textDecoration: "none", color: "#3b82f6" }}>回到首頁</Link>
-					<button onClick={() => setShowForm(true)} style={{ background: "#2563eb", color: "white", border: "none", padding: "8px 12px", borderRadius: 6, cursor: "pointer" }}>
-						新增產品
-					</button>
+						<Link href="/" style={{ textDecoration: "none", color: "#3b82f6" }}>回到首頁</Link>
+						<button onClick={() => { void handleAddClick(); }} style={{ background: "#2563eb", color: "white", border: "none", padding: "8px 12px", borderRadius: 6, cursor: "pointer" }}>
+							新增產品
+						</button>
 				</div>
 			</div>
 
