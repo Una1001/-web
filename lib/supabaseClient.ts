@@ -7,10 +7,11 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
-// 單一命名匯出 hasSupabase：其他模組可用來判斷是否啟用 Supabase
-export const hasSupabase = Boolean(supabaseUrl && supabaseKey);
+// 檢查是否有正確的 Supabase 設定
+export const hasSupabase = !!supabaseUrl && !!supabaseKey;
 
-// 若要用硬編碼 key（僅於開發），可以改為下列方式：
-// const SUPABASE_URL = 'https://...';
-// const SUPABASE_ANON_KEY = '...';
+
+// const SUPABASE_URL = 'https://lyokorcfaaqobtvtimeu.supabase.co';
+// const SUPABASE_ANON_KEY = 'your-anon-key-here'; // Replace with your actual Supabase anon key
+
 // export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
