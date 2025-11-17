@@ -132,18 +132,6 @@ export default function OrdersPage() {
         訂單列表
       </Typography>
 
-      <div style={{ marginBottom: 12 }}>
-        <Button variant="contained" onClick={openAddDialog} sx={{ mr: 1 }}>
-          新增訂單
-        </Button>
-        <Link href="/">
-          <Button variant="outlined">回到首頁 (Link)</Button>
-        </Link>
-        <Button variant="contained" onClick={() => router.push('/')} sx={{ ml: 1 }}>
-          使用 JS 跳轉回首頁
-        </Button>
-      </div>
-
       <List sx={{ bgcolor: "background.paper" }}>
         {orders.map((o) => (
           <ListItem key={o.id} divider>
