@@ -1,34 +1,31 @@
 "use client";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { supabase, hasSupabase } from "../../lib/supabaseClient";
+import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
-import Typography from "@mui/material/Typography";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
-import Button from "@mui/material/Button";
-import Stack from "@mui/material/Stack";
 import Snackbar from "@mui/material/Snackbar";
-import Alert from "@mui/material/Alert";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
-import DialogContent from "@mui/material/DialogContent";
-import DialogActions from "@mui/material/DialogActions";
+import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { hasSupabase, supabase } from "../../lib/supabaseClient";
 
 export default function OrdersPage() {
   const router = useRouter();
 
-  const seed = useMemo(
-    () => [
-      { id: 1001, customer: "張三", total: 1200 },
-      { id: 1002, customer: "李四", total: 450 },
-    ],
-    []
-  );
-
-  const [orders, setOrders] = useState(seed);
+  // orders 初始不放假資料；use loaded 來控制第一次載入
+  type Order = { id: number; customer: string; total: number };
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [connStatus, setConnStatus] = useState<"ok" | "no-config" | "error" | "local">("local");
+  const [connMessage, setConnMessage] = useState<string | null>(null);
   // prevent hydration mismatch by rendering content only after mount
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -45,32 +42,76 @@ export default function OrdersPage() {
     const load = async () => {
       if (hasSupabase) {
         try {
-          const { data, error } = await supabase.from("orders").select("*").order("id", { ascending: true }).limit(500);
+          // quick connectivity check + fetch (try ordering by id first)
+          let data: unknown = null;
+          let error: unknown = null;
+          try {
+            const res = await supabase.from("orders").select("*").order("id", { ascending: true }).limit(500);
+            data = res.data;
+            error = res.error;
+          } catch (e) {
+            // client-level error (will be handled below)
+            error = e;
+          }
+
+          // If ordering by id failed because the table doesn't expose `id`, retry without order
+          if (error && String((error as { message?: string }).message ?? error).includes("orders.id")) {
+            console.warn('Retrying fetch without ordering by id due to DB schema:', error);
+            try {
+              const res2 = await supabase.from("orders").select("*").limit(500);
+              data = res2.data;
+              error = res2.error;
+            } catch (e2) {
+              error = e2;
+            }
+          }
+
           if (!error && Array.isArray(data)) {
-            setOrders(data as any[]);
+            setOrders(data as Order[]);
+            setConnStatus("ok");
+            setConnMessage(null);
+            setLoaded(true);
             return;
           }
-        } catch (e) {
-          // fallback
+
+          if (error) {
+            console.error('Supabase query error', error);
+            setConnStatus("error");
+            setConnMessage(String((error as { message?: string }).message ?? String(error)));
+          }
+        } catch (err) {
+          console.error('Error loading orders from Supabase', err);
+          setConnStatus("error");
+          setConnMessage(String(err));
+          // fallback to local
         }
+      }
+      else {
+        setConnStatus("no-config");
+        setConnMessage("NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY missing or empty");
       }
       try {
         const raw = localStorage.getItem("orders");
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) setOrders(parsed);
+          if (Array.isArray(parsed)) setOrders(parsed as Order[]);
         }
-      } catch {}
+      } catch (err) {
+        console.error('Error reading orders from localStorage', err);
+      }
+      setLoaded(true);
     };
 
     void load();
   }, []);
 
+  // 只有在第一次載入完成後才把變動寫回 localStorage，避免覆蓋從 server 取得的資料
   useEffect(() => {
+    if (!loaded) return;
     try {
       localStorage.setItem("orders", JSON.stringify(orders));
     } catch {}
-  }, [orders]);
+  }, [orders, loaded]);
 
   const validate = () => {
     const next: { customer?: string; total?: string } = {};
@@ -95,10 +136,11 @@ export default function OrdersPage() {
         try {
           const { data, error } = await supabase.from("orders").insert({ customer: nextOrder.customer, total: nextOrder.total }).select();
           if (error) throw error;
-          if (Array.isArray(data) && data[0]) setOrders((prev) => [...prev, data[0] as any]);
+          if (Array.isArray(data) && data[0]) setOrders((prev) => [...prev, data[0] as Order]);
           else setOrders((prev) => [...prev, nextOrder]);
           setToast({ open: true, msg: "已新增訂單 (已寫入 Supabase)", severity: "success" });
         } catch (e) {
+          console.error('Error inserting order to Supabase', e);
           setOrders((prev) => [...prev, nextOrder]);
           setToast({ open: true, msg: "新增 Supabase 失敗，已保留於本地", severity: "error" });
         }
@@ -126,8 +168,25 @@ export default function OrdersPage() {
 
   if (!mounted) return null;
 
+  // 如果還沒載入完，顯示載入提示（避免顯示預設假的 seed 資料）
+  if (!loaded) {
+    return (
+      <Container sx={{ padding: 3 }}>
+        <Typography variant="h6">訂單列表</Typography>
+        <Typography variant="body1" sx={{ mt: 2 }}>載入中...</Typography>
+      </Container>
+    );
+  }
+
   return (
     <Container sx={{ padding: 3 }}>
+      {connStatus !== "ok" && (
+        <Alert severity={connStatus === "error" ? "error" : "warning"} sx={{ mb: 2 }}>
+          {connStatus === "no-config"
+            ? "Supabase 未設定或環境變數缺失，請檢查 .env.local"
+            : connMessage ?? "無法連到 Supabase，畫面改以本地資料顯示"}
+        </Alert>
+      )}
       <Typography variant="h4" sx={{ mb: 2 }}>
         訂單列表
       </Typography>

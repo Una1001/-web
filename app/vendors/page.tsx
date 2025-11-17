@@ -15,10 +15,9 @@ type Vendor = { id: number; name: string; contact: string };
 export default function VendorsPage() {
   const router = useRouter();
 
-  const [vendors, setVendors] = useState<Vendor[]>([
-    { id: 1, name: "AAA 電子", contact: "aaa@example.com" },
-    { id: 2, name: "BBB 材料行", contact: "bbb@example.com" },
-  ]);
+  // 不在一開始塞假的資料，改為空陣列；使用 loaded 控制首次載入
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
   const [isOpen, setIsOpen] = useState(false);
   const [formName, setFormName] = useState("");
@@ -69,11 +68,12 @@ export default function VendorsPage() {
           const { data, error } = await supabase.from("vendors").insert({ name: newVendorLocal.name, contact: newVendorLocal.contact }).select();
           if (error) throw error;
           if (Array.isArray(data) && data[0]) {
-            setVendors((prev) => [data[0] as any, ...prev]);
+            setVendors((prev) => [data[0] as Vendor, ...prev]);
           } else {
             setVendors((prev) => [newVendorLocal, ...prev]);
           }
         } catch (e) {
+          console.error('新增 vendor failed, falling back to local', e);
           setVendors((prev) => [newVendorLocal, ...prev]);
           alert("新增 Supabase 失敗，已保留於本地");
         }
@@ -121,9 +121,10 @@ export default function VendorsPage() {
           const { data, error } = await supabase.from('vendors').update({ name, contact }).eq('id', editingId).select();
           if (error) throw error;
           if (Array.isArray(data) && data[0]) {
-            setVendors(prev => prev.map(item => item.id === editingId ? (data[0] as any) : item));
+            setVendors(prev => prev.map(item => item.id === editingId ? (data[0] as Vendor) : item));
           }
-        } catch (e) {
+        } catch (err) {
+          console.error('更新 vendor failed, falling back to local update', err);
           setVendors(prev => prev.map(item => item.id === editingId ? { ...item, name, contact } : item));
           alert('更新 Supabase 失敗，本地已更新');
         }
@@ -148,7 +149,8 @@ export default function VendorsPage() {
           const { error } = await supabase.from('vendors').delete().eq('id', id);
           if (error) throw error;
           setVendors(prev => prev.filter(v => v.id !== id));
-        } catch (e) {
+        } catch (err) {
+          console.error('刪除 vendor failed, falling back to local delete', err);
           setVendors(prev => prev.filter(v => v.id !== id));
           alert('刪除 Supabase 失敗，本地已移除');
         }
@@ -166,10 +168,12 @@ export default function VendorsPage() {
         try {
           const { data, error } = await supabase.from("vendors").select("*").order("id", { ascending: false }).limit(100);
           if (!error && Array.isArray(data)) {
-            setVendors(data as any[]);
+            setVendors(data as Vendor[]);
+            setLoaded(true);
             return;
           }
-        } catch (e) {
+        } catch (err) {
+          console.error('Error loading vendors from Supabase', err);
           // fallback to local
         }
       }
@@ -178,19 +182,30 @@ export default function VendorsPage() {
         const raw = localStorage.getItem("vendors");
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) setVendors(parsed);
+          if (Array.isArray(parsed)) setVendors(parsed as Vendor[]);
         }
-      } catch {}
+      } catch (err) { console.error('Error reading vendors from localStorage', err); }
+      setLoaded(true);
     };
 
     void load();
   }, []);
 
+  // 只有在載入完成後才把變動寫回 localStorage，避免覆蓋從 server 取得的資料
   useEffect(() => {
+    if (!loaded) return;
     try {
       localStorage.setItem("vendors", JSON.stringify(vendors));
     } catch {}
-  }, [vendors]);
+  }, [vendors, loaded]);
+
+  if (!loaded) {
+    return (
+      <Container sx={{ padding: 3 }}>
+        <Typography variant="h6">載入中...</Typography>
+      </Container>
+    );
+  }
 
   return (
     <Container sx={{ padding: 3 }}>
