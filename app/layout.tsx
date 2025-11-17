@@ -14,14 +14,17 @@ const geistMono = Geist_Mono({
 });
 
 
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className={`centered-body ${geistSans.variable} ${geistMono.variable}`}>
+        <h1 className="purple-title">輔仁大學資訊管理學系</h1>
         {children}
       </body>
     </html>

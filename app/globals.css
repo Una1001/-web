@@ -35,6 +35,21 @@ a {
   text-decoration: none;
 }
 
+/* 置中 body 內容 */
+.centered-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+}
+
+/* 將 h1 標題改為紫色 */
+.purple-title {
+  color: purple;
+}
+
 @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;
