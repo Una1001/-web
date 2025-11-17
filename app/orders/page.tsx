@@ -1,250 +1,272 @@
 "use client";
-import Alert from "@mui/material/Alert";
+
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
-import Snackbar from "@mui/material/Snackbar";
-import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { hasSupabase, supabase } from "../../lib/supabaseClient";
+
+type Order = { orders_id: number; customer_id: number; total: number };
 
 export default function OrdersPage() {
   const router = useRouter();
 
-  // orders 初始不放假資料；use loaded 來控制第一次載入
-  type Order = { id: number; customer: string; total: number };
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loaded, setLoaded] = useState(false);
-  const [connStatus, setConnStatus] = useState<"ok" | "no-config" | "error" | "local">("local");
-  const [connMessage, setConnMessage] = useState<string | null>(null);
-  // prevent hydration mismatch by rendering content only after mount
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-  const [customer, setCustomer] = useState("");
-  const [total, setTotal] = useState("");
-  const [errors, setErrors] = useState<{ customer?: string; total?: string }>({});
-  const [toast, setToast] = useState<{ open: boolean; msg: string; severity: "success" | "error" }>({ open: false, msg: "", severity: "success" });
-  const [openAdd, setOpenAdd] = useState(false);
-  const customerRef = useRef<HTMLInputElement | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]); // 初始設為空陣列
 
-  useEffect(() => {
-    const load = async () => {
-      if (hasSupabase) {
-        try {
-          // quick connectivity check + fetch (try ordering by id first)
-          let data: unknown = null;
-          let error: unknown = null;
-          try {
-            const res = await supabase.from("orders").select("*").order("id", { ascending: true }).limit(500);
-            data = res.data;
-            error = res.error;
-          } catch (e) {
-            // client-level error (will be handled below)
-            error = e;
-          }
+  const [isOpen, setIsOpen] = useState(false);
+  const [formCustomerId, setFormCustomerId] = useState("");
+  const [formTotal, setFormTotal] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
 
-          // If ordering by id failed because the table doesn't expose `id`, retry without order
-          if (error && String((error as { message?: string }).message ?? error).includes("orders.id")) {
-            console.warn('Retrying fetch without ordering by id due to DB schema:', error);
-            try {
-              const res2 = await supabase.from("orders").select("*").limit(500);
-              data = res2.data;
-              error = res2.error;
-            } catch (e2) {
-              error = e2;
-            }
-          }
-
-          if (!error && Array.isArray(data)) {
-            setOrders(data as Order[]);
-            setConnStatus("ok");
-            setConnMessage(null);
-            setLoaded(true);
-            return;
-          }
-
-          if (error) {
-            console.error('Supabase query error', error);
-            setConnStatus("error");
-            setConnMessage(String((error as { message?: string }).message ?? String(error)));
-          }
-        } catch (err) {
-          console.error('Error loading orders from Supabase', err);
-          setConnStatus("error");
-          setConnMessage(String(err));
-          // fallback to local
-        }
-      }
-      else {
-        setConnStatus("no-config");
-        setConnMessage("NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY missing or empty");
-      }
-      try {
-        const raw = localStorage.getItem("orders");
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed)) setOrders(parsed as Order[]);
-        }
-      } catch (err) {
-        console.error('Error reading orders from localStorage', err);
-      }
-      setLoaded(true);
-    };
-
-    void load();
-  }, []);
-
-  // 只有在第一次載入完成後才把變動寫回 localStorage，避免覆蓋從 server 取得的資料
-  useEffect(() => {
-    if (!loaded) return;
-    try {
-      localStorage.setItem("orders", JSON.stringify(orders));
-    } catch {}
-  }, [orders, loaded]);
-
-  const validate = () => {
-    const next: { customer?: string; total?: string } = {};
-    if (!customer.trim()) next.customer = "請輸入顧客姓名";
-    const num = Number(total);
-    if (!total.trim()) next.total = "請輸入金額";
-    else if (Number.isNaN(num) || num <= 0) next.total = "金額需為大於 0 的數字";
-    setErrors(next);
-    return Object.keys(next).length === 0;
+  const closeModal = () => {
+    setIsOpen(false);
+    setFormCustomerId("");
+    setFormTotal("");
   };
 
-  const handleAdd = () => {
-    if (!validate()) return;
-    const nextOrder = {
-      id: orders.length ? Math.max(...orders.map((o) => o.id)) + 1 : 1,
-      customer: customer.trim(),
-      total: Number(total),
-    };
+  // 確認使用者是否已登入，未登入會導到 /login
+  async function ensureAuth(): Promise<boolean> {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/login');
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Auth check failed', err);
+      router.push('/login');
+      return false;
+    }
+  }
+
+  const addOrder = () => {
+    const customer_id = parseInt(formCustomerId.trim(), 10);
+    const total = parseFloat(formTotal.trim());
+    if (isNaN(customer_id)) {
+      alert("請輸入有效的客戶 ID");
+      return;
+    }
+    if (isNaN(total)) {
+      alert("請輸入有效的總金額");
+      return;
+    }
 
     const doAdd = async () => {
-      if (hasSupabase) {
-        try {
-          const { data, error } = await supabase.from("orders").insert({ customer: nextOrder.customer, total: nextOrder.total }).select();
-          if (error) throw error;
-          if (Array.isArray(data) && data[0]) setOrders((prev) => [...prev, data[0] as Order]);
-          else setOrders((prev) => [...prev, nextOrder]);
-          setToast({ open: true, msg: "已新增訂單 (已寫入 Supabase)", severity: "success" });
-        } catch (e) {
-          console.error('Error inserting order to Supabase', e);
-          setOrders((prev) => [...prev, nextOrder]);
-          setToast({ open: true, msg: "新增 Supabase 失敗，已保留於本地", severity: "error" });
-        }
-      } else {
-        setOrders((prev) => [...prev, nextOrder]);
-        setToast({ open: true, msg: "已新增訂單 (本地)", severity: "success" });
+      const { data: customer, error: customerError } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("id", customer_id)
+        .maybeSingle();
+
+      if (customerError || !customer) {
+        alert("這個客戶 ID 不存在，請先建立顧客或輸入正確的 ID");
+        return;
       }
 
-      setCustomer("");
-      setTotal("");
-      setErrors({});
-      setOpenAdd(false);
+      const newOrderLocal = { orders_id: Math.floor(Math.random() * 1000000), customer_id, total }; // Replace Date.now() with a deterministic value
+
+      const { data, error } = await supabase
+        .from("orders")
+        .insert({ customer_id, total })
+        .select();
+
+      if (error) {
+        alert("新增失敗：" + error.message);
+        return;
+      }
+
+      if (Array.isArray(data) && data[0]) {
+        setOrders(prev => [data[0] as any, ...prev]);
+      } else {
+        setOrders(prev => [newOrderLocal, ...prev]); // Fallback for local addition
+      }
+
+      closeModal();
     };
 
     void doAdd();
   };
 
-  const openAddDialog = () => {
-    setCustomer("");
-    setTotal("");
-    setErrors({});
-    setOpenAdd(true);
-    setTimeout(() => customerRef.current?.focus(), 50);
+  const startEdit = async (o: Order) => {
+    const ok = await ensureAuth();
+    if (!ok) return;
+    setEditingId(o.orders_id);
+    setFormCustomerId(o.customer_id.toString());
+    setFormTotal(o.total.toString());
+    setIsOpen(true);
   };
 
-  if (!mounted) return null;
-
-  // 如果還沒載入完，顯示載入提示（避免顯示預設假的 seed 資料）
-  if (!loaded) {
-    return (
-      <Container sx={{ padding: 3 }}>
-        <Typography variant="h6">訂單列表</Typography>
-        <Typography variant="body1" sx={{ mt: 2 }}>載入中...</Typography>
-      </Container>
-    );
+  // 處理新增按鈕點擊：先檢查是否已登入，未登入則導向 /login
+  async function handleAddClick() {
+    try {
+      const ok = await ensureAuth();
+      if (!ok) return;
+      setIsOpen(true);
+    } catch (err) {
+      console.error('Error checking auth before add:', err);
+      router.push('/login');
+    }
   }
+
+  const saveEdit = () => {
+    const customer_id = parseInt(formCustomerId.trim(), 10);
+    const total = parseFloat(formTotal.trim());
+    if (isNaN(customer_id)) return alert("請輸入有效的客戶 ID");
+    if (isNaN(total)) return alert("請輸入有效的總金額");
+
+    const doSave = async () => {
+      if (editingId == null) return closeModal();
+      if (hasSupabase) {
+        try {
+          const { data, error } = await supabase.from('orders').update({ customer_id, total }).eq('orders_id', editingId).select();
+          if (error) throw error;
+          if (Array.isArray(data) && data[0]) {
+            setOrders(prev => prev.map(item => item.orders_id === editingId ? (data[0] as any) : item));
+          }
+        } catch (e) {
+          setOrders(prev => prev.map(item => item.orders_id === editingId ? { ...item, customer_id, total } : item));
+          alert('更新 Supabase 失敗，本地已更新');
+        }
+      } else {
+        setOrders(prev => prev.map(item => item.orders_id === editingId ? { ...item, customer_id, total } : item));
+      }
+
+      closeModal();
+      setEditingId(null);
+    };
+
+    void doSave();
+  };
+
+  const deleteOrder = async (id: number) => {
+    const ok = await ensureAuth();
+    if (!ok) return;
+    if (!confirm('確定要刪除這個訂單嗎？')) return;
+    const doDelete = async () => {
+      if (hasSupabase) {
+        try {
+          const { error } = await supabase.from('orders').delete().eq('orders_id', id);
+          if (error) throw error;
+          setOrders(prev => prev.filter(o => o.orders_id !== id));
+        } catch (e) {
+          setOrders(prev => prev.filter(o => o.orders_id !== id));
+          alert('刪除 Supabase 失敗，本地已移除');
+        }
+      } else {
+        setOrders(prev => prev.filter(o => o.orders_id !== id));
+      }
+    };
+
+    void doDelete();
+  };
+
+  useEffect(() => {
+    const load = async () => {
+      if (hasSupabase) {
+        try {
+          const { data, error } = await supabase.from("orders").select("*").order("orders_id", { ascending: false }).limit(100);
+          if (!error && Array.isArray(data)) {
+            setOrders(data as any[]);
+            return;
+          }
+        } catch (e) {
+          console.error("Failed to fetch orders from Supabase:", e);
+        }
+      }
+
+      try {
+        const raw = localStorage.getItem("orders");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) setOrders(parsed);
+        }
+      } catch (e) {
+        console.error("Failed to load orders from localStorage:", e);
+      }
+    };
+
+    void load();
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (orders.length > 0) { // 確保只有在有資料時才更新 localStorage
+        localStorage.setItem("orders", JSON.stringify(orders));
+      }
+    } catch (e) {
+      console.error("Failed to save orders to localStorage:", e);
+    }
+  }, [orders]);
 
   return (
     <Container sx={{ padding: 3 }}>
-      {connStatus !== "ok" && (
-        <Alert severity={connStatus === "error" ? "error" : "warning"} sx={{ mb: 2 }}>
-          {connStatus === "no-config"
-            ? "Supabase 未設定或環境變數缺失，請檢查 .env.local"
-            : connMessage ?? "無法連到 Supabase，畫面改以本地資料顯示"}
-        </Alert>
-      )}
       <Typography variant="h4" sx={{ mb: 2 }}>
         訂單列表
       </Typography>
 
       <List sx={{ bgcolor: "background.paper" }}>
         {orders.map((o) => (
-          <ListItem key={o.id} divider>
-            訂單 #{o.id} - {o.customer} - NT${o.total}
+          <ListItem key={o.orders_id} divider>
+            <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: 'center' }}>
+              <div>
+                <div style={{ fontWeight: 700 }}>訂單 ID: {o.orders_id}</div>
+                <div style={{ color: "#555", fontSize: 13 }}>客戶 ID: {o.customer_id}</div>
+                <div style={{ color: "#555", fontSize: 13 }}>總金額: {o.total}</div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Button size="small" variant="outlined" onClick={() => startEdit(o)}>編輯</Button>
+                <Button size="small" variant="contained" color="error" onClick={() => deleteOrder(o.orders_id)}>刪除</Button>
+              </div>
+            </div>
           </ListItem>
         ))}
       </List>
 
-      <Dialog open={openAdd} onClose={() => setOpenAdd(false)} fullWidth maxWidth="sm">
-        <DialogTitle>新增訂單</DialogTitle>
-        <DialogContent>
-          <Stack spacing={1.5} sx={{ mt: 1 }}>
-            <TextField
-              inputRef={customerRef}
-              label="顧客"
-              placeholder="顧客姓名"
-              value={customer}
-              onChange={(e) => setCustomer(e.target.value)}
-              error={Boolean(errors.customer)}
-              helperText={errors.customer}
-              size="small"
-              fullWidth
-            />
-            <TextField
-              label="金額"
-              placeholder="請輸入金額"
-              value={total}
-              onChange={(e) => setTotal(e.target.value)}
-              error={Boolean(errors.total)}
-              helperText={errors.total}
-              size="small"
-              fullWidth
-              inputMode="numeric"
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenAdd(false)}>取消</Button>
-          <Button variant="contained" onClick={handleAdd}>
-            確認新增
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
+        <Link href="/">
+          <Button variant="outlined">回到首頁 (Link)</Button>
+        </Link>
 
-      <Snackbar
-        open={toast.open}
-        autoHideDuration={2200}
-        onClose={() => setToast((t) => ({ ...t, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert severity={toast.severity} variant="filled" sx={{ width: "100%" }}>
-          {toast.msg}
-        </Alert>
-      </Snackbar>
+        <Button variant="contained" onClick={() => router.push('/')}>使用 JS 跳轉回首頁</Button>
+
+        <div style={{ marginLeft: "auto" }}>
+          <Button variant="contained" color="success" onClick={() => { void handleAddClick(); }}>
+            新增訂單
+          </Button>
+        </div>
+      </div>
+
+      {/* Modal */}
+      {isOpen && (
+        <div role="dialog" aria-modal="true" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ width: 420, background: "#fff", borderRadius: 10, padding: 20, boxShadow: "0 10px 30px rgba(2,6,23,0.2)" }}>
+            <h2 style={{ marginTop: 0 }}>{editingId ? '編輯訂單' : '新增訂單'}</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <label style={{ fontSize: 13, color: "#374151" }}>客戶 ID</label>
+              <input value={formCustomerId} onChange={(e) => setFormCustomerId(e.target.value)} placeholder="例如：1" style={{ padding: 10, borderRadius: 6, border: "1px solid #e5e7eb" }} />
+
+              <label style={{ fontSize: 13, color: "#374151" }}>總金額</label>
+              <input value={formTotal} onChange={(e) => setFormTotal(e.target.value)} placeholder="例如：5000" style={{ padding: 10, borderRadius: 6, border: "1px solid #e5e7eb" }} />
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 6 }}>
+                <Button variant="outlined" onClick={() => { closeModal(); setEditingId(null); }}>取消</Button>
+                {editingId ? (
+                  <Button variant="contained" onClick={saveEdit}>儲存</Button>
+                ) : (
+                  <Button variant="contained" onClick={addOrder}>新增</Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </Container>
   );
 }
